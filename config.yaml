@@ -1,0 +1,180 @@
+mixed-port: 7890
+allow-lan: true
+mode: Rule
+log-level: info
+external-controller: 127.0.0.1:9090
+external-ui: dashboard
+tun:
+  enable: false
+  stack: system # or gvisor
+  auto-route: true
+  auto-detect-interface: true
+  dns-hijack:
+    - any:53
+secret: key
+dns:
+  enable: true
+  listen: 0.0.0.0:53
+  ipv6: true
+  enhanced-mode: fake-ip
+  default-nameserver: [180.184.1.1, 119.29.29.99, 223.5.5.5, 8.8.8.8]
+  nameserver:
+    [
+      tls://223.5.5.5:853,
+      https://223.6.6.6/dns-query,
+      https://120.53.53.53/dns-query,
+    ]
+  nameserver-policy:
+    {
+      +.weixin.com: 119.29.29.99,
+      +.bilibili.com: 114.114.114.114,
+      +.hdslb.com: 114.114.114.114,
+      +.bilivideo.+: 114.114.114.114,
+    }
+  fallback:
+    [
+      https://dns.google/dns-query,
+      https://208.67.222.222/dns-query,
+      https://208.67.222.222/dns-query,
+    ]
+  fallback-filter:
+    {
+      geoip: true,
+      geoip-code: CN,
+      ipcidr: [240.0.0.0/4],
+      domain: [+.google.com, +.youtube.com, twitter.com],
+    }
+
+proxy-providers:
+  node:
+    type: file
+    path: ./subconverter/proxy.yaml
+    health-check:
+      enable: false
+      interval: 600
+      url: http://www.gstatic.com/generate_204
+
+proxy-groups:
+  - name: 🔯 科学上网
+    type: select
+    proxies:
+      - ⚖️ HK
+      - ⚖️ TW
+      - ⚖️ US
+      - 🚀 节点选择
+      - DIRECT
+  - name: 💬 OpenAI
+    type: select
+    proxies:
+      - ⚖️ TW
+      - ⚖️ US
+  - name: 🚀 节点选择
+    type: select
+    use:
+      - node
+    lazy: true
+  - name: 🎯 全球直连
+    type: select
+    proxies:
+      - DIRECT
+      - 🔯 科学上网
+  - name: 🐟 漏网之鱼
+    type: select
+    proxies:
+      - 🔯 科学上网
+      - DIRECT
+  - name: ⚖️ HK
+    type: load-balance
+    strategy: round-robin
+    url: http://www.gstatic.com/generate_204
+    interval: 300
+    filter: "香港"
+    use:
+      - node
+  - name: ⚖️ TW
+    type: load-balance
+    strategy: consistent-hashing
+    url: http://www.gstatic.com/generate_204
+    filter: "台湾"
+    use:
+      - node
+  - name: ⚖️ US
+    type: load-balance
+    strategy: consistent-hashing
+    url: http://www.gstatic.com/generate_204
+    filter: "美国"
+    use:
+      - node
+
+rule-providers:
+  LocalAreaNetwork:
+    type: file
+    behavior: classical
+    path: ./rule-set/LocalAreaNetwork.yaml
+    interval: 86400
+  BanAD:
+    type: file
+    behavior: classical
+    path: ./rule-set/BanAD.yaml
+    interval: 86400
+  GoogleCN:
+    type: file
+    behavior: classical
+    path: ./rule-set/GoogleCN.yaml
+    interval: 86400
+  Microsoft:
+    type: file
+    behavior: classical
+    path: ./rule-set/Microsoft.yaml
+    interval: 86400
+  Apple:
+    type: file
+    behavior: classical
+    path: ./rule-set/Apple.yaml
+    interval: 86400
+  OpenAi:
+    type: file
+    behavior: classical
+    path: ./rule-set/OpenAi.yaml
+    interval: 86400
+  Bilibili:
+    type: file
+    behavior: classical
+    path: ./rule-set/Bilibili.yaml
+    interval: 86400
+  ProxyMedia:
+    type: file
+    behavior: classical
+    path: ./rule-set/ProxyMedia.yaml
+    interval: 86400
+  ProxyLite:
+    type: file
+    behavior: classical
+    path: ./rule-set/ProxyLite.yaml
+    interval: 86400
+  ChinaDomain:
+    type: file
+    behavior: classical
+    path: ./rule-set/ChinaDomain.yaml
+    interval: 86400
+  ChinaCompanyIp:
+    type: file
+    behavior: ipcidr
+    path: ./rule-set/ChinaCompanyIp.yaml
+    interval: 86400
+
+rules:
+  - DOMAIN,translate.googleapis.com,🔯 科学上网
+  - RULE-SET,LocalAreaNetwork,🎯 全球直连
+  - RULE-SET,BanAD,REJECT
+  - RULE-SET,GoogleCN,🎯 全球直连
+  - RULE-SET,Microsoft,🔯 科学上网
+  - RULE-SET,Apple,🎯 全球直连
+  - RULE-SET,OpenAi,💬 OpenAI
+  - RULE-SET,Bilibili,🎯 全球直连
+  - RULE-SET,ProxyMedia,🔯 科学上网
+  - RULE-SET,ProxyLite,🔯 科学上网
+  - RULE-SET,ChinaDomain,🎯 全球直连
+  - RULE-SET,ChinaCompanyIp,🎯 全球直连
+  - GEOIP,CN,🎯 全球直连
+  - MATCH,🐟 漏网之鱼
