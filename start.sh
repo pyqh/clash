@@ -1,7 +1,7 @@
 sudo systemctl stop systemd-resolved
 sudo systemctl disable systemd-resolved
 
-cat << EOF | sudo tee -a /etc/systemd/system/clash.service
+cat <<EOF | sudo tee /etc/systemd/system/clash.service
 [Unit]
 Description=Clash daemon
 After=network.target
